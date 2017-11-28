@@ -1,0 +1,144 @@
+\documentclass{beamer}
+\usetheme{boadilla}
+\usecolortheme{beaver}
+
+\begin{document}
+
+\title{Don Quixote: Creating a Word Cloud}
+\author{Jorge Fitzmaurice}
+
+\begin{frame}
+  \titlepage
+\end{frame}
+
+\begin{frame}
+  \frametitle{Outline}
+    \tableofcontents
+\end{frame}
+
+\section{Install and Load Libraries}
+\begin{frame}[fragile]
+  \frametitle{Install and Load Libraries}
+    \begin{itemize}
+      \item<1->
+      <<warning=FALSE,message=FALSE>>=
+        library(dplyr)
+      @
+      \item<2->
+      <<warning=FALSE,message=FALSE>>=
+        library(tidytext)
+      @
+      \item<3->
+      <<warning=FALSE,message=FALSE>>=
+        library(gutenbergr)
+      @
+      \item<4->
+      <<warning=FALSE,message=FALSE>>=
+        library(wordcloud)
+      @
+      \item<5->
+      <<warning=FALSE,message=FALSE>>=
+        library(stringr)
+      @
+      \item<6->
+      <<warning=FALSE,message=FALSE>>=
+        library(wordcloud2)
+      @
+      \item<7->
+      <<warning=FALSE,message=FALSE>>=
+        library(webshot)
+      @
+    \end{itemize}
+\end{frame}    
+
+\section{Access Project Gutenberg}
+\begin{frame}[fragile]
+  \frametitle{Access Project Gutenberg}
+    <<message=FALSE,warning=FALSE>>=
+      df<-gutenberg_works(str_detect(title,'Don Quixote'))
+      df$gutenberg_id[1:5]
+      df$title[1:5]
+    @
+\end{frame}
+
+\section{Download Don Quixote}
+\begin{frame}[fragile]
+  \frametitle{Download Don Quixote}
+    <<warning=FALSE,message=FALSE>>=
+      quixote<-gutenberg_download(996)
+      colnames(quixote)
+      substr(quixote$text[1001],1,21)
+    @
+\end{frame}
+
+\section{Unpack the Words}
+\begin{frame}[fragile]
+  \frametitle{Unpack the Words}
+    <<>>=
+      quixote_words<-quixote%>%
+                    unnest_tokens(word,text)
+      colnames(quixote_words)
+      quixote_words[1000:1003,]
+    @
+\end{frame}
+
+\section{The Bing Lexicon}
+\begin{frame}[fragile]
+  \frametitle{The Bing Lexicon}
+    <<>>=
+      nrc<-get_sentiments('nrc')
+      colnames(nrc)
+      nrc[1000:1003,]
+    @
+\end{frame}
+
+\section{The Inner Join}
+\begin{frame}[fragile]
+  \frametitle{The Inner Join}
+    <<>>=
+      quixote_words<-inner_join(quixote_words,nrc)
+      quixote_words$gutenberg_id<-NULL
+      quixote_words[500:502,]
+    @
+\end{frame}
+
+\section{The Fear Words}
+\begin{frame}[allowframebreaks,fragile]
+  \frametitle{The Fear Words}
+    <<>>=
+      quixote_fear<-quixote_words%>%
+                  filter(sentiment == 'fear')%>%
+                  group_by(word)%>%
+                  summarize(freq = n())%>%
+                  filter(freq<=100)
+    @
+    
+  \framebreak
+    <<>>=
+      quixote_fear
+    @
+\end{frame}
+
+\section{The Word Cloud}
+\begin{frame}[allowframebreaks,fragile]
+  \frametitle{The Word Cloud}
+    <<warning=FALSE,message=FALSE>>=
+      plot<-wordcloud(quixote_fear$word,
+                      quixote_fear$freq,min.freq = 25)
+    @
+    
+  \framebreak
+    <<>>=
+      plot
+    @
+\end{frame}
+
+\section{The Word Cloud 2}
+\begin{frame}[fragile]
+  \frametitle{The Word Cloud 2}
+    <<warning=FALSE,message=FALSE>>=
+      wordcloud2(quixote_fear,color='random-dark')
+    @
+  
+\end{frame}
+\end{document}
